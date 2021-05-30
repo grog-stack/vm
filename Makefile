@@ -1,2 +1,2 @@
 grog:
-	gcc -o grog grog.c
+	gcc -ggdb -g -o grog grog.c
