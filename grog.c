@@ -21,45 +21,37 @@ struct GrogVM {
 
 typedef struct GrogVM GrogVM;
 
-void add(GrogVM *vm, byte instr) { 
+// Register instructions
+
+byte addBytes(byte dest, byte src) { return dest + src; } 
+byte subBytes(byte dest, byte src) { return dest - src; }
+byte mulBytes(byte dest, byte src) { return dest - src; }
+byte divBytes(byte dest, byte src) { return dest - src; }
+
+void instructionOnRegister(GrogVM *vm, byte (*op)(byte, byte)) {
     byte operand = vm->memory[vm->pc+1];
     byte dest = (operand & LEFT_NIBBLE) >> 4;
     byte src = operand & RIGHT_NIBBLE;
-    vm->registers[dest] = vm->registers[dest] + vm->registers[src];
+    vm->registers[dest] = op(vm->registers[dest], vm->registers[src]);
     vm->pc += 2;
-};
+}
 
-void sub(GrogVM *vm, byte instr) { 
-    byte operand = vm->memory[vm->pc+1];
-    byte dest = (operand & LEFT_NIBBLE) >> 4;
-    byte src = operand & RIGHT_NIBBLE;
-    vm->registers[dest] = vm->registers[dest] - vm->registers[src];
-    vm->pc += 2;
-};
+// Instruction set
 
-void mul(GrogVM *vm, byte instr) { 
-    byte operand = vm->memory[vm->pc+1];
-    byte dest = (operand & LEFT_NIBBLE) >> 4;
-    byte src = operand & RIGHT_NIBBLE;
-    vm->registers[dest] = vm->registers[dest] * vm->registers[src];
-    vm->pc += 2;
-};
+void hcf(GrogVM *vm, byte instr) {}
+void add(GrogVM *vm, byte instr) { instructionOnRegister(vm, &addBytes); }
+void sub(GrogVM *vm, byte instr) { instructionOnRegister(vm, &subBytes); }
+void mul(GrogVM *vm, byte instr) { instructionOnRegister(vm, &mulBytes); }
+void div(GrogVM *vm, byte instr) { instructionOnRegister(vm, &divBytes); }
 
-void div(GrogVM *vm, byte instr) { 
-    byte operand = vm->memory[vm->pc+1];
-    byte dest = (operand & LEFT_NIBBLE) >> 4;
-    byte src = operand & RIGHT_NIBBLE;
-    vm->registers[dest] = vm->registers[dest] / vm->registers[src];
-    vm->pc += 2;
-};
-
-void (*instructions[4])(GrogVM *, byte) = {&add, &sub, &mul, &div};
+void (*instructions[4])(GrogVM *, byte) = {&hcf, &add, &sub, &mul, &div};
 
 void run(GrogVM *vm) {
     printf("\nRunning...\n");
     byte instr = vm->memory[vm->pc];
     while (instr != HCF) {
         (*instructions[instr])(vm, instr);
+        instr = vm->memory[vm->pc];
     }
     printf("Halt and catch fire!\n");
 }
@@ -76,6 +68,14 @@ void loadROM(GrogVM *vm, char *filename) {
     fclose(fileptr);
 }
 
+void dump(GrogVM *vm) {
+    printf("Registers:");
+    for (int i = 0; i < REGISTERS_COUNT; i++) {
+        printf(" %x=%x",i, vm->registers[i]);
+    }
+    printf("\n");
+}
+
 int main(int argc, char **argv)
 {
     printf("Grog Virtual Machine: %d registers, %d addressable bytes in memory.\n", REGISTERS_COUNT, MEMORY_SIZE);
@@ -84,5 +84,6 @@ int main(int argc, char **argv)
     printf("Reading ROM from %s\n", filename);
     loadROM(&vm, filename);
     run(&vm);
+    dump(&vm);
 }
 
