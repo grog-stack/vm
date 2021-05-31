@@ -25,8 +25,11 @@ typedef struct GrogVM GrogVM;
 
 byte addBytes(byte dest, byte src) { return dest + src; } 
 byte subBytes(byte dest, byte src) { return dest - src; }
-byte mulBytes(byte dest, byte src) { return dest - src; }
-byte divBytes(byte dest, byte src) { return dest - src; }
+byte mulBytes(byte dest, byte src) { return dest * src; }
+byte divBytes(byte dest, byte src) { return dest / src; }
+byte andBytes(byte dest, byte src) { return dest & src; }
+byte orBytes(byte dest, byte src) { return dest | src; }
+byte xorBytes(byte dest, byte src) { return dest ^ src; }
 
 void instructionOnRegister(GrogVM *vm, byte (*op)(byte, byte)) {
     byte operand = vm->memory[vm->pc+1];
@@ -43,8 +46,11 @@ void add(GrogVM *vm, byte instr) { instructionOnRegister(vm, &addBytes); }
 void sub(GrogVM *vm, byte instr) { instructionOnRegister(vm, &subBytes); }
 void mul(GrogVM *vm, byte instr) { instructionOnRegister(vm, &mulBytes); }
 void div(GrogVM *vm, byte instr) { instructionOnRegister(vm, &divBytes); }
+void and(GrogVM *vm, byte instr) { instructionOnRegister(vm, &andBytes); }
+void or(GrogVM *vm, byte instr) { instructionOnRegister(vm, &orBytes); }
+void xor(GrogVM *vm, byte instr) { instructionOnRegister(vm, &xorBytes); }
 
-void (*instructions[4])(GrogVM *, byte) = {&hcf, &add, &sub, &mul, &div};
+void (*instructions[8])(GrogVM *, byte) = {&hcf, &add, &sub, &mul, &div, &and, &or};
 
 void run(GrogVM *vm) {
     printf("\nRunning...\n");
@@ -59,7 +65,7 @@ void run(GrogVM *vm) {
 void loadROM(GrogVM *vm, char *filename) {
     FILE *fileptr = fopen(filename, READ_BINARY);
     fseek(fileptr, 0, SEEK_END);                     // Jump to the end of the file
-    long filelen = ftell(fileptr);                        // Get the current byte offset in the file
+    long filelen = ftell(fileptr);                   // Get the current byte offset in the file
     printf("%ld bytes in ROM\n", filelen);
     rewind(fileptr);                                 // Jump back to the beginning of the file
 
