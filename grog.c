@@ -23,6 +23,13 @@ typedef struct GrogVM GrogVM;
 
 // Register instructions
 
+address readAddressFromAbsoluteAddress(GrogVM *vm, address from) {
+    return ((address) vm->memory[from] << 8) & (address) vm->memory[from+1];
+}
+byte decodeRegister(byte instruction) {
+    return (instruction & RIGHT_NIBBLE);
+}
+
 byte addBytes(byte dest, byte src) { return dest + src; } 
 byte subBytes(byte dest, byte src) { return dest - src; }
 byte mulBytes(byte dest, byte src) { return dest * src; }
@@ -42,21 +49,39 @@ void instructionOnRegister(GrogVM *vm, byte (*op)(byte, byte)) {
 // Instruction set
 
 void hcf(GrogVM *vm, byte instr) {}
+
+void load(GrogVM *vm, byte instr) {
+    vm->registers[decodeRegister(instr)] = vm->memory[vm->pc+1];
+    vm->pc += 2;
+}
+
+void store(GrogVM *vm, byte instr) {
+    vm->memory[readAddressFromAbsoluteAddress(vm, vm->pc+1)] = vm->registers[decodeRegister(instr)];
+    vm->pc += 3;
+}
+
 void add(GrogVM *vm, byte instr) { instructionOnRegister(vm, &addBytes); }
+
 void sub(GrogVM *vm, byte instr) { instructionOnRegister(vm, &subBytes); }
+
 void mul(GrogVM *vm, byte instr) { instructionOnRegister(vm, &mulBytes); }
+
 void div(GrogVM *vm, byte instr) { instructionOnRegister(vm, &divBytes); }
+
 void and(GrogVM *vm, byte instr) { instructionOnRegister(vm, &andBytes); }
+
 void or(GrogVM *vm, byte instr) { instructionOnRegister(vm, &orBytes); }
+
 void xor(GrogVM *vm, byte instr) { instructionOnRegister(vm, &xorBytes); }
 
-void (*instructions[8])(GrogVM *, byte) = {&hcf, &add, &sub, &mul, &div, &and, &or};
+void (*instructions[9])(GrogVM *, byte) = {&hcf, &load, &store, &add, &sub, &mul, &div, &and, &or};
 
 void run(GrogVM *vm) {
     printf("\nRunning...\n");
     byte instr = vm->memory[vm->pc];
     while (instr != HCF) {
-        (*instructions[instr])(vm, instr);
+        byte opcode = (instr & LEFT_NIBBLE) >> 4;
+        (*instructions[opcode])(vm, instr);
         instr = vm->memory[vm->pc];
     }
     printf("Halt and catch fire!\n");
