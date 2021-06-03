@@ -1,14 +1,16 @@
 #include "stdio.h"
+#include "stdlib.h"
+#include "stdbool.h"
 
 #define REGISTERS_COUNT 16
 #define MEMORY_SIZE 64*1024 // 64K should be enough...
-
-// Instruction set
-
-#define HCF 0x00 // Halt and catch fire
 #define LEFT_NIBBLE 0xF0
 #define RIGHT_NIBBLE 0x0F
 #define READ_BINARY "rb"
+
+// Errors
+
+#define ROM_TOO_LARGE 1
 
 typedef unsigned char byte;
 typedef unsigned int address;
@@ -17,6 +19,7 @@ struct GrogVM {
     byte registers[REGISTERS_COUNT];
     byte memory[MEMORY_SIZE];
     address pc; // program counter
+    bool running;
 };
 
 typedef struct GrogVM GrogVM;
@@ -48,38 +51,39 @@ void instructionOnRegister(GrogVM *vm, byte (*op)(byte, byte)) {
 
 // Instruction set
 
-void hcf(GrogVM *vm, byte instr) {}
+void HCF(GrogVM *vm, byte instr) { vm->running = false; }
 
-void load(GrogVM *vm, byte instr) {
+void LOAD(GrogVM *vm, byte instr) {
     vm->registers[decodeRegister(instr)] = vm->memory[vm->pc+1];
     vm->pc += 2;
 }
 
-void store(GrogVM *vm, byte instr) {
+void STORE(GrogVM *vm, byte instr) {
     vm->memory[readAddressFromAbsoluteAddress(vm, vm->pc+1)] = vm->registers[decodeRegister(instr)];
     vm->pc += 3;
 }
 
-void add(GrogVM *vm, byte instr) { instructionOnRegister(vm, &addBytes); }
+void ADD(GrogVM *vm, byte instr) { instructionOnRegister(vm, &addBytes); }
 
-void sub(GrogVM *vm, byte instr) { instructionOnRegister(vm, &subBytes); }
+void SUB(GrogVM *vm, byte instr) { instructionOnRegister(vm, &subBytes); }
 
-void mul(GrogVM *vm, byte instr) { instructionOnRegister(vm, &mulBytes); }
+void MUL(GrogVM *vm, byte instr) { instructionOnRegister(vm, &mulBytes); }
 
-void div(GrogVM *vm, byte instr) { instructionOnRegister(vm, &divBytes); }
+void DIV(GrogVM *vm, byte instr) { instructionOnRegister(vm, &divBytes); }
 
-void and(GrogVM *vm, byte instr) { instructionOnRegister(vm, &andBytes); }
+void AND(GrogVM *vm, byte instr) { instructionOnRegister(vm, &andBytes); }
 
-void or(GrogVM *vm, byte instr) { instructionOnRegister(vm, &orBytes); }
+void OR(GrogVM *vm, byte instr) { instructionOnRegister(vm, &orBytes); }
 
-void xor(GrogVM *vm, byte instr) { instructionOnRegister(vm, &xorBytes); }
+void XOR(GrogVM *vm, byte instr) { instructionOnRegister(vm, &xorBytes); }
 
-void (*instructions[9])(GrogVM *, byte) = {&hcf, &load, &store, &add, &sub, &mul, &div, &and, &or};
+void (*instructions[10])(GrogVM *, byte) = {&HCF, &LOAD, &STORE, &ADD, &SUB, &MUL, &DIV, &AND, &OR, &XOR};
 
 void run(GrogVM *vm) {
     printf("\nRunning...\n");
     byte instr = vm->memory[vm->pc];
-    while (instr != HCF) {
+    vm->running = true;
+    while (vm->running == true) {
         byte opcode = (instr & LEFT_NIBBLE) >> 4;
         (*instructions[opcode])(vm, instr);
         instr = vm->memory[vm->pc];
@@ -87,10 +91,19 @@ void run(GrogVM *vm) {
     printf("Halt and catch fire!\n");
 }
 
+long vmMemorySize(GrogVM *vm) {
+    return sizeof(vm->memory);
+}
+
 void loadROM(GrogVM *vm, char *filename) {
     FILE *fileptr = fopen(filename, READ_BINARY);
     fseek(fileptr, 0, SEEK_END);                     // Jump to the end of the file
     long filelen = ftell(fileptr);                   // Get the current byte offset in the file
+    long maxLength = vmMemorySize(vm);
+    if( filelen > maxLength) {
+        printf("ROM size is %ld bytes, max is %ld.\n", filelen,    maxLength);
+        exit(ROM_TOO_LARGE);
+    }
     printf("%ld bytes in ROM\n", filelen);
     rewind(fileptr);                                 // Jump back to the beginning of the file
 
