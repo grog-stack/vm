@@ -27,8 +27,9 @@ typedef struct GrogVM GrogVM;
 // Register instructions
 
 address readAddressFromAbsoluteAddress(GrogVM *vm, address from) {
-    return ((address) vm->memory[from] << 8) & (address) vm->memory[from+1];
+    return ((address) vm->memory[from] << 8) + (address) vm->memory[from+1];
 }
+
 byte decodeRegister(byte instruction) {
     return (instruction & RIGHT_NIBBLE);
 }
@@ -48,6 +49,26 @@ void instructionOnRegister(GrogVM *vm, byte (*op)(byte, byte)) {
     vm->registers[dest] = op(vm->registers[dest], vm->registers[src]);
     vm->pc += 2;
 }
+
+bool testEquals(byte dest, byte src) { return dest == src; }
+
+bool testNotEquals(byte dest, byte src) { return dest != src; }
+
+bool testLessThan(byte dest, byte src) { return dest < src; }
+
+bool testGreaterThan(byte dest, byte src) { return dest > src; }
+
+void branchIfTest(GrogVM *vm, bool (*test)(byte, byte)) { 
+    byte operand = vm->memory[vm->pc+1];
+    byte dest = (operand & LEFT_NIBBLE) >> 4;
+    byte src = operand & RIGHT_NIBBLE;
+    if (test(vm->registers[dest], vm->registers[src])) {
+        address jumpAddress = readAddressFromAbsoluteAddress(vm, vm->pc+2);
+        vm->pc = jumpAddress;
+    } else {
+        vm->pc += 4;
+    }
+ }
 
 // Instruction set
 
@@ -77,7 +98,29 @@ void OR(GrogVM *vm, byte instr) { instructionOnRegister(vm, &orBytes); }
 
 void XOR(GrogVM *vm, byte instr) { instructionOnRegister(vm, &xorBytes); }
 
-void (*instructions[10])(GrogVM *, byte) = {&HCF, &LOAD, &STORE, &ADD, &SUB, &MUL, &DIV, &AND, &OR, &XOR};
+void BEQ(GrogVM *vm, byte instr) { branchIfTest(vm, &testEquals); };
+
+void BNEQ(GrogVM *vm, byte instr) { branchIfTest(vm, &testNotEquals); };
+
+void BLT(GrogVM *vm, byte instr) { branchIfTest(vm, &testLessThan); };
+
+void BGT(GrogVM *vm, byte instr) { branchIfTest(vm, &testGreaterThan); };
+
+void (*instructions[12])(GrogVM *, byte) = {
+    &HCF,   // 0x00
+    &LOAD,  // 0x10
+    &STORE, // 0x20
+    &ADD,   // 0x30
+    &SUB,   // 0x40
+    &MUL,   // 0x50
+    &DIV,   // 0x60
+    &AND,   // 0x70
+    &OR,    // 0x80
+    &XOR,   // 0x90
+    &BEQ,   // 0xA0
+    &BNEQ   // 0xB0
+};
+
 
 void run(GrogVM *vm) {
     printf("\nRunning...\n");
@@ -101,7 +144,7 @@ void loadROM(GrogVM *vm, char *filename) {
     long filelen = ftell(fileptr);                   // Get the current byte offset in the file
     long maxLength = vmMemorySize(vm);
     if( filelen > maxLength) {
-        printf("ROM size is %ld bytes, max is %ld.\n", filelen,    maxLength);
+        printf("ROM size is %ld bytes, max is %ld.\n", filelen, maxLength);
         exit(ROM_TOO_LARGE);
     }
     printf("%ld bytes in ROM\n", filelen);
@@ -130,4 +173,5 @@ int main(int argc, char **argv)
     run(&vm);
     dump(&vm);
 }
+
 
