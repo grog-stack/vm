@@ -54,8 +54,6 @@ bool testEquals(byte dest, byte src) { return dest == src; }
 
 bool testNotEquals(byte dest, byte src) { return dest != src; }
 
-bool testLessThan(byte dest, byte src) { return dest < src; }
-
 bool testGreaterThan(byte dest, byte src) { return dest > src; }
 
 void branchIfTest(GrogVM *vm, bool (*test)(byte, byte)) { 
@@ -102,11 +100,9 @@ void BEQ(GrogVM *vm, byte instr) { branchIfTest(vm, &testEquals); };
 
 void BNEQ(GrogVM *vm, byte instr) { branchIfTest(vm, &testNotEquals); };
 
-void BLT(GrogVM *vm, byte instr) { branchIfTest(vm, &testLessThan); };
-
 void BGT(GrogVM *vm, byte instr) { branchIfTest(vm, &testGreaterThan); };
 
-void (*instructions[12])(GrogVM *, byte) = {
+void (*instructions[14])(GrogVM *, byte) = {
     &HCF,   // 0x00
     &LOAD,  // 0x10
     &STORE, // 0x20
@@ -118,7 +114,8 @@ void (*instructions[12])(GrogVM *, byte) = {
     &OR,    // 0x80
     &XOR,   // 0x90
     &BEQ,   // 0xA0
-    &BNEQ   // 0xB0
+    &BNEQ,  // 0xB0
+    &BGT,   // 0xC0
 };
 
 
