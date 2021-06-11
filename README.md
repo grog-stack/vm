@@ -13,16 +13,17 @@ Grog Virtual Machine is an experimental, minimalistic virtual machine.
 
 ## Instructions
 
-| Instruction | Name                   | Description                                        |
-| :-:         | :--                    | :--                                                |
-| ```HCF```   | Halt and Catch Fire    | Stops the machine.                                 |
-| ```LOAD```  | Load into register     | Load a value into a register.                      |
-| ```STORE``` | Store into register    | Store value into memory.                           |
-| ```AND```   | Boolean AND            | Boolean AND.                                       |
-| ```OR```    | Boolean OR             | Boolean OR.                                        |
-| ```XOR```   | Boolean XOR            | Boolean XOR.                                       |
-| ```JAL```   | Jump                   | Unconditional jump to offset from next value.      |
-| ```JALR```  | Jump                   | Unconditional jump to offset from next register.   |
-| ```BEQ```   | Branch if equal        | Branch if registers are equal.                     |
-| ```BNE```   | Branch if not equal    | Branch if registers are not equal.                 |
-| ```BLT```   | Branch if less than    | Branch if register is less then other.             |
+| Instruction | Name                            | Description                                         |
+| :-:         | :--                             | :--                                                 |
+| ```HCF```   | Halt and Catch Fire             | Stops the machine.                                  |
+| ```LOAD```  | Load into register              | Load a value into a register.                       |
+| ```STORE``` | Store into register             | Store value into memory.                            |
+| ```AND```   | Boolean AND                     | Boolean AND.                                        |
+| ```OR```    | Boolean OR                      | Boolean OR.                                         |
+| ```XOR```   | Boolean XOR                     | Boolean XOR.                                        | 
+| ```JAL```   | Jump                            | Unconditional jump to offset from next value.       |
+| ```JALR```  | Jump                            | Unconditional jump to offset from next register.    |
+| ```BEQ```   | Branch if equal                 | Branch if registers are equal.                      |
+| ```BNE```   | Branch if not equal             | Branch if registers are not equal.                  |
+| ```BLT```   | Branch if less than             | Branch if register is less than other.              |
+| ```BGE```   | Branch if greater or equal than | Branch if register is greater or equals than other. |

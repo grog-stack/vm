@@ -56,6 +56,8 @@ bool testNotEquals(byte dest, byte src) { return dest != src; }
 
 bool testLessThan(byte dest, byte src) { return dest < src; }
 
+bool testGreaterOrEqualThan(byte dest, byte src) { return dest >= src; }
+
 void branchIfTest(GrogVM *vm, bool (*test)(byte, byte)) { 
     byte operand = vm->memory[vm->pc+1];
     byte dest = (operand & LEFT_NIBBLE) >> 4;
@@ -108,7 +110,9 @@ void BNE(GrogVM *vm, byte instr) { branchIfTest(vm, &testNotEquals); }
 
 void BLT(GrogVM *vm, byte instr) { branchIfTest(vm, &testLessThan); }
 
-void (*instructions[15])(GrogVM *, byte) = {
+void BGE(GrogVM *vm, byte instr) { branchIfTest(vm, &testGreaterOrEqualThan); }
+
+void (*instructions[16])(GrogVM *, byte) = {
     &HCF,   // 0x00
     &LOAD,  // 0x10
     &STORE, // 0x20
@@ -124,8 +128,8 @@ void (*instructions[15])(GrogVM *, byte) = {
     &BEQ,   // 0xC0
     &BNE,   // 0xD0
     &BLT,   // 0xE0
+    &BGE,   // 0xF0
 };
-
 
 void run(GrogVM *vm) {
     printf("\nRunning...\n");
