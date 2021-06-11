@@ -104,7 +104,7 @@ void JALR(GrogVM *vm, byte instr) { vm->pc = vm->pc + decodeRegister(instr); }
 
 void BEQ(GrogVM *vm, byte instr) { branchIfTest(vm, &testEquals); }
 
-void BNEQ(GrogVM *vm, byte instr) { branchIfTest(vm, &testNotEquals); }
+void BNE(GrogVM *vm, byte instr) { branchIfTest(vm, &testNotEquals); }
 
 void BGT(GrogVM *vm, byte instr) { branchIfTest(vm, &testGreaterThan); }
 
@@ -122,7 +122,7 @@ void (*instructions[15])(GrogVM *, byte) = {
     &JAL,   // 0xA0
     &JALR,  // 0xB0
     &BEQ,   // 0xC0
-    &BNEQ,  // 0xD0
+    &BNE,   // 0xD0
     &BGT,   // 0xE0
 };
 
