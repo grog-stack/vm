@@ -25,4 +25,4 @@ Grog Virtual Machine is an experimental, minimalistic virtual machine.
 | ```JALR```  | Jump                   | Unconditional jump to offset from next register.   |
 | ```BEQ```   | Branch if equal        | Branch if registers are equal.                     |
 | ```BNE```   | Branch if not equal    | Branch if registers are not equal.                 |
-| ```BGT```   | Branch if greater than | Branch if register is greater equal.               |
+| ```BLT```   | Branch if less than    | Branch if register is less then other.             |
