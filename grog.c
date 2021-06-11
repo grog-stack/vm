@@ -96,13 +96,19 @@ void OR(GrogVM *vm, byte instr) { instructionOnRegister(vm, &orBytes); }
 
 void XOR(GrogVM *vm, byte instr) { instructionOnRegister(vm, &xorBytes); }
 
-void BEQ(GrogVM *vm, byte instr) { branchIfTest(vm, &testEquals); };
+// This is not exactly what the RISC-V JAL instruction does
+void JAL(GrogVM *vm, byte instr) { vm->pc = vm->pc + vm->memory[vm->pc+1]; }
 
-void BNEQ(GrogVM *vm, byte instr) { branchIfTest(vm, &testNotEquals); };
+// This is not exactly what the RISC-V JALR instruction does
+void JALR(GrogVM *vm, byte instr) { vm->pc = vm->pc + decodeRegister(instr); }
 
-void BGT(GrogVM *vm, byte instr) { branchIfTest(vm, &testGreaterThan); };
+void BEQ(GrogVM *vm, byte instr) { branchIfTest(vm, &testEquals); }
 
-void (*instructions[14])(GrogVM *, byte) = {
+void BNEQ(GrogVM *vm, byte instr) { branchIfTest(vm, &testNotEquals); }
+
+void BGT(GrogVM *vm, byte instr) { branchIfTest(vm, &testGreaterThan); }
+
+void (*instructions[15])(GrogVM *, byte) = {
     &HCF,   // 0x00
     &LOAD,  // 0x10
     &STORE, // 0x20
@@ -113,9 +119,11 @@ void (*instructions[14])(GrogVM *, byte) = {
     &AND,   // 0x70
     &OR,    // 0x80
     &XOR,   // 0x90
-    &BEQ,   // 0xA0
-    &BNEQ,  // 0xB0
-    &BGT,   // 0xC0
+    &JAL,   // 0xA0
+    &JALR,  // 0xB0
+    &BEQ,   // 0xC0
+    &BNEQ,  // 0xD0
+    &BGT,   // 0xE0
 };
 
 
