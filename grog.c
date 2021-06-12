@@ -112,33 +112,39 @@ void BLT(GrogVM *vm, byte instr) { branchIfTest(vm, &testLessThan); }
 
 void BGE(GrogVM *vm, byte instr) { branchIfTest(vm, &testGreaterOrEqualThan); }
 
+void EBREAK(GrogVM *vm, byte instr) { /* Not implemented yet. */ }
+
 void (*instructions[16])(GrogVM *, byte) = {
-    &HCF,   // 0x00
-    &LOAD,  // 0x01
-    &STORE, // 0x02
-    &ADD,   // 0x03
-    &SUB,   // 0x04
-    &MUL,   // 0x05
-    &DIV,   // 0x06
-    &AND,   // 0x07
-    &OR,    // 0x08
-    &XOR,   // 0x09
-    &JAL,   // 0x0A
-    &JALR,  // 0x0B
-    &BEQ,   // 0x0C
-    &BNE,   // 0x0D
-    &BLT,   // 0x0E
-    &BGE,   // 0x0F
+    &HCF,    // 0x00
+    &LOAD,   // 0x01
+    &STORE,  // 0x02
+    &ADD,    // 0x03
+    &SUB,    // 0x04
+    &MUL,    // 0x05
+    &DIV,    // 0x06
+    &AND,    // 0x07
+    &OR,     // 0x08
+    &XOR,    // 0x09
+    &JAL,    // 0x10
+    &JALR,   // 0x20
+    &BEQ,    // 0x30
+    &BNE,    // 0x40
+    &BLT,    // 0x50
+    &BGE,    // 0x60
+    &EBREAK, // 0x70
 };
+
+byte decodeInstruction(byte opcode) {
+    return opcode & RIGHT_NIBBLE;
+}
 
 void run(GrogVM *vm) {
     printf("\nRunning...\n");
-    byte instr = vm->memory[vm->pc];
     vm->running = true;
     while (vm->running == true) {
-        byte opcode = instr & RIGHT_NIBBLE;
-        (*instructions[opcode])(vm, instr);
-        instr = vm->memory[vm->pc];
+        byte instr = vm->memory[vm->pc];
+        byte opcode = decodeInstruction(vm->memory[vm->pc]);
+        (*instructions[opcode])(vm, opcode);
     }
 }
 
