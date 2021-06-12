@@ -72,7 +72,7 @@ void branchIfTest(GrogVM *vm, bool (*test)(byte, byte)) {
 
 // Instruction set
 
-void HCF(GrogVM *vm, byte instr) { vm->running = false; }
+void HCF(GrogVM *vm, byte instr) { printf("Halt and catch fire!\n"); vm->running = false; }
 
 void LOAD(GrogVM *vm, byte instr) {
     vm->registers[decodeRegister(instr)] = vm->memory[vm->pc+1];
@@ -114,21 +114,21 @@ void BGE(GrogVM *vm, byte instr) { branchIfTest(vm, &testGreaterOrEqualThan); }
 
 void (*instructions[16])(GrogVM *, byte) = {
     &HCF,   // 0x00
-    &LOAD,  // 0x10
-    &STORE, // 0x20
-    &ADD,   // 0x30
-    &SUB,   // 0x40
-    &MUL,   // 0x50
-    &DIV,   // 0x60
-    &AND,   // 0x70
-    &OR,    // 0x80
-    &XOR,   // 0x90
-    &JAL,   // 0xA0
-    &JALR,  // 0xB0
-    &BEQ,   // 0xC0
-    &BNE,   // 0xD0
-    &BLT,   // 0xE0
-    &BGE,   // 0xF0
+    &LOAD,  // 0x01
+    &STORE, // 0x02
+    &ADD,   // 0x03
+    &SUB,   // 0x04
+    &MUL,   // 0x05
+    &DIV,   // 0x06
+    &AND,   // 0x07
+    &OR,    // 0x08
+    &XOR,   // 0x09
+    &JAL,   // 0x0A
+    &JALR,  // 0x0B
+    &BEQ,   // 0x0C
+    &BNE,   // 0x0D
+    &BLT,   // 0x0E
+    &BGE,   // 0x0F
 };
 
 void run(GrogVM *vm) {
@@ -136,11 +136,10 @@ void run(GrogVM *vm) {
     byte instr = vm->memory[vm->pc];
     vm->running = true;
     while (vm->running == true) {
-        byte opcode = (instr & LEFT_NIBBLE) >> 4;
+        byte opcode = instr & RIGHT_NIBBLE;
         (*instructions[opcode])(vm, instr);
         instr = vm->memory[vm->pc];
     }
-    printf("Halt and catch fire!\n");
 }
 
 long vmMemorySize(GrogVM *vm) {
