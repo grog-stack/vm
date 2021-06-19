@@ -11,7 +11,9 @@ Grog Virtual Machine is an experimental, minimalistic virtual machine.
 * 64Kb of addressable memory.
 * 16 input/output devices.
 
-## Instructions
+## Instruction set
+
+The instruction set is loosely based on [RISC-V](https://riscv.org/).
 
 | Instruction | Name                            | Description                                         |
 | :-:         | :--                             | :--                                                 |
