@@ -8,6 +8,12 @@
 #define RIGHT_NIBBLE 0x0F
 #define READ_BINARY "rb"
 
+// Adressing modes
+#define IMMEDIATE 0x00
+#define ABSOLUTE 0x40
+#define OFFSET 0x80
+#define REGISTER 0xC0
+
 // Errors
 
 #define ROM_TOO_LARGE 1
@@ -30,6 +36,16 @@ address readAddressFromAbsoluteAddress(GrogVM *vm, address from) {
     return ((address) vm->memory[from] << 8) + (address) vm->memory[from+1];
 }
 
+address addressFromAddressingMode(GrogVM *vm, byte mode, byte register_) {
+    switch (mode) {
+        case IMMEDIATE: return vm->pc+1;
+        case ABSOLUTE: return readAddressFromAbsoluteAddress(vm, vm->pc+1);
+        case OFFSET: return vm->pc + vm->memory[vm->pc+1];
+        case REGISTER: return vm->pc + vm->registers[register_];
+        default: return -1; // Should never happen... right?
+    }
+}
+
 byte decodeRegister(byte instruction) {
     return (instruction & RIGHT_NIBBLE);
 }
@@ -50,6 +66,8 @@ void instructionOnRegister(GrogVM *vm, byte (*op)(byte, byte)) {
     vm->pc += 2;
 }
 
+bool alwaysJump(byte dest, byte src) { return true; }
+
 bool testEquals(byte dest, byte src) { return dest == src; }
 
 bool testNotEquals(byte dest, byte src) { return dest != src; }
@@ -58,93 +76,94 @@ bool testLessThan(byte dest, byte src) { return dest < src; }
 
 bool testGreaterOrEqualThan(byte dest, byte src) { return dest >= src; }
 
-void branchIfTest(GrogVM *vm, bool (*test)(byte, byte)) { 
-    byte operand = vm->memory[vm->pc+1];
-    byte dest = (operand & LEFT_NIBBLE) >> 4;
-    byte src = operand & RIGHT_NIBBLE;
+void branchIfTest(GrogVM *vm, byte opcode, bool (*test)(byte, byte)) { 
+    byte operand1 = vm->memory[vm->pc+1];
+    byte register_ = operand1 & RIGHT_NIBBLE;
+    byte mode = operand1 & LEFT_NIBBLE;
+    byte operand2 = vm->memory[vm->pc+2];
+    byte dest = (operand2 & LEFT_NIBBLE) >> 4;
+    byte src = operand2 & RIGHT_NIBBLE;
     if (test(vm->registers[dest], vm->registers[src])) {
-        address jumpAddress = readAddressFromAbsoluteAddress(vm, vm->pc+2);
-        vm->pc = jumpAddress;
+        vm->pc = addressFromAddressingMode(vm, mode, register_);
     } else {
-        vm->pc += 4;
+        vm->pc += 2;
     }
- }
+}
 
 // Instruction set
 
-void HCF(GrogVM *vm, byte instr) { printf("Halt and catch fire!\n"); vm->running = false; }
+void HCF(GrogVM *vm, byte instr) { vm->running = false; }
 
+// Memory
 void LOAD(GrogVM *vm, byte instr) {
-    vm->registers[decodeRegister(instr)] = vm->memory[vm->pc+1];
+    byte operand = vm->memory[vm->pc+1];
+    byte register_ = operand & RIGHT_NIBBLE;
+    byte mode = operand & LEFT_NIBBLE;
+    vm->registers[register_] = vm->memory[addressFromAddressingMode(vm, mode, register_)];
     vm->pc += 2;
 }
 
 void STORE(GrogVM *vm, byte instr) {
-    vm->memory[readAddressFromAbsoluteAddress(vm, vm->pc+1)] = vm->registers[decodeRegister(instr)];
+    byte operand = vm->memory[vm->pc+1];
+    byte register_ = operand & RIGHT_NIBBLE;
+    byte mode = operand & LEFT_NIBBLE;
+    vm->memory[addressFromAddressingMode(vm, mode, register_)] = vm->registers[register_];
     vm->pc += 3;
 }
 
-void ADD(GrogVM *vm, byte instr) { instructionOnRegister(vm, &addBytes); }
+// Arithmetic
+void ADD(GrogVM *vm, byte opcode) { instructionOnRegister(vm, &addBytes); }
+void SUB(GrogVM *vm, byte opcode) { instructionOnRegister(vm, &subBytes); }
+void MUL(GrogVM *vm, byte opcode) { instructionOnRegister(vm, &mulBytes); }
+void DIV(GrogVM *vm, byte opcode) { instructionOnRegister(vm, &divBytes); }
 
-void SUB(GrogVM *vm, byte instr) { instructionOnRegister(vm, &subBytes); }
+// Boolean
+void AND(GrogVM *vm, byte opcode) { instructionOnRegister(vm, &andBytes); }
+void OR(GrogVM *vm, byte opcode) { instructionOnRegister(vm, &orBytes); }
+void XOR(GrogVM *vm, byte opcode) { instructionOnRegister(vm, &xorBytes); }
 
-void MUL(GrogVM *vm, byte instr) { instructionOnRegister(vm, &mulBytes); }
+// Branching
+void JAL(GrogVM *vm, byte opcode) { branchIfTest(vm, opcode, &alwaysJump); }
+void BEQ(GrogVM *vm, byte opcode) { branchIfTest(vm, opcode, &testEquals); }
+void BNE(GrogVM *vm, byte opcode) { branchIfTest(vm, opcode, &testNotEquals); }
+void BLT(GrogVM *vm, byte opcode) { branchIfTest(vm, opcode, &testLessThan); }
+void BGE(GrogVM *vm, byte opcode) { branchIfTest(vm, opcode, &testGreaterOrEqualThan); }
 
-void DIV(GrogVM *vm, byte instr) { instructionOnRegister(vm, &divBytes); }
+void EBREAK(GrogVM *vm, byte opcode) { /* Not implemented yet. */ }
 
-void AND(GrogVM *vm, byte instr) { instructionOnRegister(vm, &andBytes); }
+void (*INSTRUCTIONS[255])(GrogVM *, byte);
 
-void OR(GrogVM *vm, byte instr) { instructionOnRegister(vm, &orBytes); }
+void setBranchInstruction(void (* function)(GrogVM *, byte), byte baseOpcode) {
+    INSTRUCTIONS[baseOpcode] = function;
+    INSTRUCTIONS[baseOpcode & 0x4F] = function;
+    INSTRUCTIONS[baseOpcode & 0x8F] = function;
+    INSTRUCTIONS[baseOpcode & 0xCF] = function;
+}
 
-void XOR(GrogVM *vm, byte instr) { instructionOnRegister(vm, &xorBytes); }
-
-// This is not exactly what the RISC-V JAL instruction does
-void JAL(GrogVM *vm, byte instr) { vm->pc = vm->pc + vm->memory[vm->pc+1]; }
-
-// This is not exactly what the RISC-V JALR instruction does
-void JALR(GrogVM *vm, byte instr) { vm->pc = vm->pc + decodeRegister(instr); }
-
-void BEQ(GrogVM *vm, byte instr) { branchIfTest(vm, &testEquals); }
-
-void BNE(GrogVM *vm, byte instr) { branchIfTest(vm, &testNotEquals); }
-
-void BLT(GrogVM *vm, byte instr) { branchIfTest(vm, &testLessThan); }
-
-void BGE(GrogVM *vm, byte instr) { branchIfTest(vm, &testGreaterOrEqualThan); }
-
-void EBREAK(GrogVM *vm, byte instr) { /* Not implemented yet. */ }
-
-void (*instructions[16])(GrogVM *, byte) = {
-    &HCF,    // 0x00
-    &LOAD,   // 0x01
-    &STORE,  // 0x02
-    &ADD,    // 0x03
-    &SUB,    // 0x04
-    &MUL,    // 0x05
-    &DIV,    // 0x06
-    &AND,    // 0x07
-    &OR,     // 0x08
-    &XOR,    // 0x09
-    &JAL,    // 0x10
-    &JALR,   // 0x20
-    &BEQ,    // 0x30
-    &BNE,    // 0x40
-    &BLT,    // 0x50
-    &BGE,    // 0x60
-    &EBREAK, // 0x70
-};
-
-byte decodeInstruction(byte opcode) {
-    return opcode & RIGHT_NIBBLE;
+void initInstructions() {
+    INSTRUCTIONS[0x00] = &HCF;
+    INSTRUCTIONS[0x01] = &LOAD;
+    INSTRUCTIONS[0x02] = &STORE;
+    INSTRUCTIONS[0x03] = &ADD;
+    INSTRUCTIONS[0x04] = &SUB;
+    INSTRUCTIONS[0x05] = &MUL;
+    INSTRUCTIONS[0x06] = &DIV;
+    INSTRUCTIONS[0x07] = &AND;
+    INSTRUCTIONS[0x08] = &OR;
+    INSTRUCTIONS[0x09] = &XOR;
+    setBranchInstruction(&JAL, 0x0A);
+    setBranchInstruction(&BEQ, 0x0B);
+    setBranchInstruction(&BNE, 0x0C);
+    setBranchInstruction(&BLT, 0x0D);
+    setBranchInstruction(&BGE, 0x0E);
 }
 
 void run(GrogVM *vm) {
     printf("\nRunning...\n");
     vm->running = true;
     while (vm->running == true) {
-        byte instr = vm->memory[vm->pc];
-        byte opcode = decodeInstruction(vm->memory[vm->pc]);
-        (*instructions[opcode])(vm, opcode);
+        byte opcode = vm->memory[vm->pc];
+        (*INSTRUCTIONS[opcode])(vm, opcode);
     }
 }
 
@@ -180,6 +199,7 @@ void dump(GrogVM *vm) {
 int main(int argc, char **argv)
 {
     printf("Grog Virtual Machine: %d registers, %d addressable bytes in memory.\n", REGISTERS_COUNT, MEMORY_SIZE);
+    initInstructions();
     GrogVM vm = {};
     char *filename = argv[1]; 
     printf("Reading ROM from %s\n", filename);
@@ -187,5 +207,3 @@ int main(int argc, char **argv)
     run(&vm);
     dump(&vm);
 }
-
-
