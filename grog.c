@@ -36,12 +36,13 @@ address readAddressFromAbsoluteAddress(GrogVM *vm, address from) {
     return ((address) vm->memory[from] << 8) + (address) vm->memory[from+1];
 }
 
-address addressFromAddressingMode(GrogVM *vm, byte mode, byte register_) {
+// The need for the register_ parameter is sub-optimal, since we don't always need it.
+address addressFromAddressingMode(GrogVM *vm, byte mode, byte register_, byte shift) {
     switch (mode) {
-        case IMMEDIATE: return vm->pc+1;
-        case ABSOLUTE: return readAddressFromAbsoluteAddress(vm, vm->pc+1);
-        case OFFSET: return vm->pc + vm->memory[vm->pc+1];
-        case REGISTER: return vm->pc + vm->registers[register_];
+        case IMMEDIATE: return vm->pc + shift;
+        case ABSOLUTE: return readAddressFromAbsoluteAddress(vm, vm->pc + shift);
+        case OFFSET: return vm->pc + vm->memory[vm->pc + shift];
+        case REGISTER: return vm->pc + vm->registers[vm->pc + shift];
         default: return -1; // Should never happen... right?
     }
 }
@@ -77,14 +78,13 @@ bool testLessThan(byte dest, byte src) { return dest < src; }
 bool testGreaterOrEqualThan(byte dest, byte src) { return dest >= src; }
 
 void branchIfTest(GrogVM *vm, byte opcode, bool (*test)(byte, byte)) { 
-    byte operand1 = vm->memory[vm->pc+1];
-    byte register_ = operand1 & RIGHT_NIBBLE;
-    byte mode = operand1 & LEFT_NIBBLE;
-    byte operand2 = vm->memory[vm->pc+2];
-    byte dest = (operand2 & LEFT_NIBBLE) >> 4;
-    byte src = operand2 & RIGHT_NIBBLE;
+    byte mode = opcode & LEFT_NIBBLE;
+    byte operand = vm->memory[vm->pc+1];
+    byte dest = (operand & LEFT_NIBBLE) >> 4;
+    byte src = operand & RIGHT_NIBBLE;
     if (test(vm->registers[dest], vm->registers[src])) {
-        vm->pc = addressFromAddressingMode(vm, mode, register_);
+        byte register_ = vm->memory[vm->pc+2];
+        vm->pc = addressFromAddressingMode(vm, mode, register_, 2);
     } else {
         vm->pc += 2;
     }
@@ -99,15 +99,15 @@ void LOAD(GrogVM *vm, byte instr) {
     byte operand = vm->memory[vm->pc+1];
     byte register_ = operand & RIGHT_NIBBLE;
     byte mode = operand & LEFT_NIBBLE;
-    vm->registers[register_] = vm->memory[addressFromAddressingMode(vm, mode, register_)];
-    vm->pc += 2;
+    vm->registers[register_] = vm->memory[addressFromAddressingMode(vm, mode, register_, 2)];
+    vm->pc += 3;
 }
 
 void STORE(GrogVM *vm, byte instr) {
     byte operand = vm->memory[vm->pc+1];
     byte register_ = operand & RIGHT_NIBBLE;
     byte mode = operand & LEFT_NIBBLE;
-    vm->memory[addressFromAddressingMode(vm, mode, register_)] = vm->registers[register_];
+    vm->memory[addressFromAddressingMode(vm, mode, register_, 2)] = vm->registers[register_];
     vm->pc += 3;
 }
 

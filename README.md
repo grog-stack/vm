@@ -89,11 +89,15 @@ The target register is specified in bits 0 to 3. The adressing mode is specified
 
 ### Jumps
 
-| instruction |  immediate |   absolute | immediate offset | register offset |
-| :-:         |        --: |        --: |              --: |             --: |
-| ```JAL```   |   ```0A``` |   ```4A``` |         ```8A``` |        ```CA``` |
-| ```BEQ```   |   ```0B``` |   ```4B``` |         ```8B``` |        ```CB``` |
-| ```BNE```   |   ```0C``` |   ```4C``` |         ```8C``` |        ```CC``` |
-| ```BLT```   |   ```0D``` |   ```4D``` |         ```8D``` |        ```CD``` |
-| ```BGE```   |   ```0E``` |   ```4E``` |         ```8E``` |        ```CE``` |
+| instruction | immediate | absolute |   offset | register |
+| :-:         |       --: |      --: |      --: |      --: |
+| ```JAL```   |  ```0A``` | ```4A``` | ```8A``` | ```CA``` |
+| ```BEQ```   |  ```0B``` | ```4B``` | ```8B``` | ```CB``` |
+| ```BNE```   |  ```0C``` | ```4C``` | ```8C``` | ```CC``` |
+| ```BLT```   |  ```0D``` | ```4D``` | ```8D``` | ```CD``` |
+| ```BGE```   |  ```0E``` | ```4E``` | ```8E``` | ```CE``` |
 
+All conditional jumps (```BEQ```, ```BNE```, ```BLT```, ```BGE```) require one operand, specifying the pair of
+registers to compare. Bits 0 to 3 codify the ```src``` register, and bits 4 to 7 codify the ```dest``` register. 
+The second operand depends on the addressing mode. Immediate, offset, and regiter modes require a second 1 byte
+operand. Absolute requires a second two bytes operand.
