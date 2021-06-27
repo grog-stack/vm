@@ -21,6 +21,7 @@ All values are 8 bits long. Bits are numbered starting with ```0```, least signi
 For example, the hexadecimal number ```71``` is represented like this:
 
 | Binary representation | 01110001 |
+| :-- | :-: |
 | Bit indexes           | 76543210 |
 
 ## Instruction set summary
