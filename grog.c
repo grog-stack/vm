@@ -163,7 +163,7 @@ void run(GrogVM *vm) {
     vm->running = true;
     while (vm->running == true) {
         byte opcode = vm->memory[vm->pc];
-        (*INSTRUCTIONS[opcode])(vm, opcode);
+        (*INSTRUCTIONS[opcode & RIGHT_NIBBLE])(vm, opcode);
     }
 }
 
