@@ -3,6 +3,7 @@
 #include "stdbool.h"
 
 #define REGISTERS_COUNT 16
+#define DEVICES_COUNT 16
 #define MEMORY_SIZE 64*1024 // 64K should be enough...
 #define LEFT_NIBBLE 0xF0
 #define RIGHT_NIBBLE 0x0F
@@ -14,6 +15,9 @@
 #define OFFSET 0x80
 #define REGISTER 0xC0
 
+// Devices
+#define CONSOLE 0x00
+
 // Errors
 
 #define ROM_TOO_LARGE 1
@@ -21,14 +25,19 @@
 typedef unsigned char byte;
 typedef unsigned int address;
 
+typedef struct GrogVM GrogVM;
+typedef struct Device {
+    void (*input)(GrogVM *, byte);
+    void (*output)(GrogVM *, byte);
+} Device;
+
 struct GrogVM {
     byte registers[REGISTERS_COUNT];
     byte memory[MEMORY_SIZE];
+    Device devices[DEVICES_COUNT];
     address pc; // program counter
     bool running;
 };
-
-typedef struct GrogVM GrogVM;
 
 // Register instructions
 
@@ -131,7 +140,21 @@ void BGE(GrogVM *vm, byte opcode) { branchIfTest(vm, opcode, &testGreaterOrEqual
 
 void EBREAK(GrogVM *vm, byte opcode) { /* Not implemented yet. */ }
 
-void (*INSTRUCTIONS[255])(GrogVM *, byte);
+void IN(GrogVM *vm, byte opcode) {
+    vm->pc += 2;
+}
+
+void OUT(GrogVM *vm, byte opcode) {
+    int dev = vm->memory[vm->pc + 2];
+    Device device = vm->devices[dev];
+    if (device.output != NULL) {
+        byte value = vm->registers[vm->memory[vm->pc + 1]];
+        device.output(vm, value);
+    }
+    vm->pc += 2;
+}
+
+void (*INSTRUCTIONS[255])(GrogVM *, byte); // TODO: Adjust the length according to the number of opcodes.
 
 void setBranchInstruction(void (* function)(GrogVM *, byte), byte baseOpcode) {
     INSTRUCTIONS[baseOpcode] = function;
@@ -156,6 +179,8 @@ void initInstructions() {
     setBranchInstruction(&BNE, 0x0C);
     setBranchInstruction(&BLT, 0x0D);
     setBranchInstruction(&BGE, 0x0E);
+    INSTRUCTIONS[0x0F] = &IN;
+    INSTRUCTIONS[0x10] = &OUT;
 }
 
 void run(GrogVM *vm) {
@@ -163,7 +188,8 @@ void run(GrogVM *vm) {
     vm->running = true;
     while (vm->running == true) {
         byte opcode = vm->memory[vm->pc];
-        (*INSTRUCTIONS[opcode & RIGHT_NIBBLE])(vm, opcode);
+        int instruction = opcode;
+        (*INSTRUCTIONS[instruction])(vm, opcode);
     }
 }
 
@@ -196,14 +222,26 @@ void dump(GrogVM *vm) {
     printf("\n");
 }
 
+void outputToConsole(GrogVM* vm, byte value) {
+    printf("%d", value);
+    fflush(stdout);
+}
+
+GrogVM* newVM() {
+    GrogVM* vm = malloc(sizeof(GrogVM));
+    vm->devices[CONSOLE].input = NULL;
+    vm->devices[CONSOLE].output = &outputToConsole;
+    return vm;
+}
+
 int main(int argc, char **argv)
 {
     printf("Grog Virtual Machine: %d registers, %d addressable bytes in memory.\n", REGISTERS_COUNT, MEMORY_SIZE);
     initInstructions();
-    GrogVM vm = {};
+    GrogVM* vm = newVM();
     char *filename = argv[1]; 
     printf("Reading ROM from %s\n", filename);
-    loadROM(&vm, filename);
-    run(&vm);
-    dump(&vm);
+    loadROM(vm, filename);
+    run(vm);
+    dump(vm);
 }

@@ -61,7 +61,7 @@ We have 4 addressing modes, so we need 2 bits to codify this flavour in the opco
 
 ### ```HCF```
 
-Halt and Catch Fire. Stops the virtual machine and exits.
+Halt and Catch Fire. Stops the virtual machine and exits. Opcode ```00```.  
 
 ### Load from and store into memory
 
@@ -70,6 +70,14 @@ Halt and Catch Fire. Stops the virtual machine and exits.
 
 In both instructions, the addressing mode and registers are read from the next memory value. 
 The target register is specified in bits 0 to 3. The adressing mode is specified in bits 4 to 5. Bits 6 to 7 are unused.
+
+In this table we list all the opcode masks for these instructions.
+
+| instruction | immediate | absolute | offset from immediate location | offset from register |
+| :-:         |       --: |      --: |                            --: |                  --: |
+| ```LOAD```  |  ```  ``` |      --: |                            --: |                  --: |
+| ```STORE``` |  ```  ``` |      --: |                            --: |                  --: |
+
 
 ### Arithmetic instructions
 
@@ -102,3 +110,18 @@ All conditional jumps (```BEQ```, ```BNE```, ```BLT```, ```BGE```) require one o
 registers to compare. Bits 0 to 3 codify the ```src``` register, and bits 4 to 7 codify the ```dest``` register. 
 The second operand depends on the addressing mode. Immediate, offset, and regiter modes require a second 1 byte
 operand. Absolute requires a second two bytes operand.
+
+### I/O
+
+There are two I/O instructions.
+
+* ```IN``` inputs a value from a device, and stores it in a register. Opcode ```0F``. The first byte operand
+specifies the the register, and the second byte operand specifies the device.
+* ```OUT``` outputs the value of a register into a device. Opcode ```10```. The first byte operand
+specifies the the register, and the second byte operand specifies the device.
+
+## Devices
+
+### Console
+
+This devices is in address ```00```. It only supports output.
